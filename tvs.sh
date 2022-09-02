@@ -1,22 +1,99 @@
 #!/bin/bash
 
-set -exuo pipefail
+set -euo pipefail
 
-# Turn on tv remote display
-# echo 'scan' | cec-client -s -d 1
+DOWNLOAD=1
+CEC=1
+API_FLASH_TOKEN="${API_FLASH_TOKEN:-}"
 
-# Open our lovely screensaver
-firefox --new-window https://apodviewer.github.io/ > /dev/null 2> /dev/null &
-WM_BROWSER_SELECTOR="firefox"
-sleep 7
-wmctrl -r "$WM_BROWSER_SELECTOR" -b add,fullscreen
+CACHE_DIR="$HOME/.cache/tv-screensaver"
+mkdir -p "$CACHE_DIR"
+SCREENSHOT_PATH="$CACHE_DIR/apodveiwer-screenshot.jpg"
 
-# Wait a bit
-sleep 10
 
-# Close our screensaver
-wmctrl -r "$WM_BROWSER_SELECTOR" -b remove,fullscreen
-wmctrl -c "$WM_BROWSER_SELECTOR" 
+eprintln() {
+  >&2 echo "$1"
+}
 
-# Turn off tv
-# FIXME
+ceccommand() {
+  local command="$1"
+  if [[ "$CEC" == 1 ]]; then
+    eprintln "Running cec command '$command'"
+    echo "$command" | cec-client -s -d 1
+  else
+    eprintln "Skipping cec command '$command' as --no-cec set"
+  fi
+}
+
+poweron() {
+  eprintln "Powering on"
+  ceccommand "on 0"
+}
+
+poweroff() {
+  eprintln "Powering off"
+  ceccommand "standby 0"
+}
+
+activeinput() {
+  eprintln "Marking as active input"
+  ceccommand "as"
+}
+
+exit_nicely() {
+  eprintln "Exiting nicely"
+  poweroff
+  exit 0
+}
+
+# When asked to terminate by timeout, shutdown gracefully
+trap 'exit_nicely' EXIT
+
+parse_args() {
+  while [[ $# -gt 0 ]]; do
+    local argname="$1"
+    case "$argname" in
+      --no-download)
+        DOWNLOAD=0
+        shift
+        ;;
+      --no-cec)
+        CEC=0
+        shift
+        ;;
+      *)
+        eprintln "Unknown option $argname"
+        exit 1
+    esac
+  done
+}
+
+parse_args "$@"
+
+run() {
+  if [[ "$DOWNLOAD" == 1 ]]; then
+    if [ -z "${API_FLASH_TOKEN}" ]; then
+      eprintln "Missing apiflash.com token. Set environment variable API_FLASH_TOKEN"
+      exit 1
+    fi
+
+    SOURCE="https://apodviewer.github.io"
+    URL="https://api.apiflash.com/v1/urltoimage?access_key=${API_FLASH_TOKEN}&wait_until=page_loaded&url=$SOURCE&delay=10&width=3840&height=2160&quality=95"
+    eprintln "Saving render of $SOURCE > $SCREENSHOT_PATH"
+    curl --silent "$URL" > "$SCREENSHOT_PATH"
+  fi
+
+  poweron
+  activeinput
+
+  # fim will run forever, until shutdown
+  eprintln "Displaying image"
+  fim "$SCREENSHOT_PATH"
+}
+
+main() {
+  parse_args
+  run
+}
+
+main
