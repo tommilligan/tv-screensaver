@@ -78,6 +78,8 @@ run() {
     fi
 
     SOURCE="https://apodviewer.github.io"
+    # 12 hours
+    TTL="43200"
 
     # 4k native
     #WIDTH=3840
@@ -89,7 +91,7 @@ run() {
     HEIGHT=1080
     SCALE_FACTOR=2
 
-    URL="https://api.apiflash.com/v1/urltoimage?access_key=${API_FLASH_TOKEN}&wait_until=page_loaded&url=$SOURCE&delay=10&width=$WIDTH&height=$HEIGHT&scale_factor=$SCALE_FACTOR&quality=95"
+    URL="https://api.apiflash.com/v1/urltoimage?access_key=${API_FLASH_TOKEN}&wait_until=page_loaded&url=$SOURCE&delay=10&width=$WIDTH&height=$HEIGHT&scale_factor=$SCALE_FACTOR&quality=95&ttl=$TTL"
     eprintln "Saving render of $SOURCE > $SCREENSHOT_PATH"
     curl --silent "$URL" > "$SCREENSHOT_PATH"
   fi
