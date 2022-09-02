@@ -8,8 +8,8 @@
 sudo apt install \
     # For HDMI CEC remote device control
     cec-utils \
-    # Control window managers (for fullscreen support)
-    wmctrl
+    # For displaying images in a terminal
+    fim
 ```
 
 ## Invocation
