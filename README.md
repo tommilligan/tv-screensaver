@@ -1,8 +1,12 @@
 # tv-screensaver
 
-## Dependencies
+Turn a TV into nice daily screensaver with a Raspberry Pi.
 
-- Device that supports CEC (probably a RPi with direct HDMI connection, NOT via USB adapter)
+## Requirements
+
+The Raspberry Pi must be connected to the display **directly by HDMI**. The device must support HDMI-CEC, and cannot be connected by e.g. a USB adapter.
+
+Some additional packages are required:
 
 ```bash
 sudo apt install \
@@ -12,33 +16,56 @@ sudo apt install \
     fim
 ```
 
-## Secrets
+## Architecture
 
-An api token for _API FLASH_ is required. This should be placed in a `.env` file adjacent to `./entrypoint.sh`:
+Due to local resource limitations, it is not feasible to run a browser on the rPi (model 1).
+
+Instead, a remote resource renders the given website to an image, which is then displayed.
+Display is via SDL direct to TTY, obviating the need for an X session/window manager etc.
+
+The remote display is powered on and off when required via HDMI-CEC.
+
+![tv-screensaver architecture diagram](./architecture.png)
+
+## Installation
+
+Clone the repo to a known location on your device:
 
 ```bash
-# .env
+cd ~
+git clone https://github.com/tommilligan/tv-screensaver
+```
+
+### Secrets
+
+An api token for [apiflash.com](https://apiflash.com/) is required - you can sign up instantly for a free trial, suitable for one request per day.
+
+The api token should be placed in a `.env` file adjacent to `./entrypoint.sh`:
+
+```bash
+# ~/tv-screensaver/.env
 API_FLASH_TOKEN=tokenvaluetokenvaluetokenvalue
 ```
 
-## Invocation
+### Invocation
 
-The script is designed to run forever, and be killed by the caller.
+You can test a one-off run of the screensaver with a short duration to test it works.
 
-See `./entrypoint.sh` for such an invocation, which uses `timeout` to shutdown after a fixed period.
+You should trigger this run from a remote SSH session or similar, as `tty1` will be used for display (so you probably shouldn't be typing on it).
 
-Invoke with timeout, which the script is designed to support.
+The duration given is in seconds, and is until the display is powered off again.
 
-### Optional arguments
+```bash
+~/tv-screensaver/entrypoint.sh --duration 120
+```
 
-Mainly for testing, the following optional arguments are provided:
+#### Scheduling
 
-- `--no-download`: do not download a new screensaver image, use the cache
-- `--no-cec`: skip any HDMI CEC comamnds
+**Note:** scheduling this job means the remote display will be auto-powered off at a fixed time every day. Check this is okay!
 
-## Scheduling
+To run the screensaver periodically, set up a cronjob. Add an entry to the existing `/etc/crontab` file.
 
-Set up a cron job to run the screensaver periodically. This will take care of turning on and off the TV periodically.
+Note that you will also need to specify the user to run the script as (`pi`), and the full absolute path to execute.
 
 ```bash
 # /etc/crontab
@@ -46,3 +73,12 @@ Set up a cron job to run the screensaver periodically. This will take care of tu
 # run every day at 6am, and shutdown after 12 hours
 0 6 * * 1-5 pi /home/pi/tv-screensaver/entrypoint.sh --duration 43200
 ```
+
+## Development
+
+### Optional arguments
+
+Mainly for testing, the following optional arguments are provided for `./tvs.sh`:
+
+- `--no-download`: Do not download a new screensaver image, use the cache. Used to preserve apiflash quota
+- `--no-cec`: Skip any HDMI CEC comamnds. Used for testing on devices without HDMI-CEC connection/support.
