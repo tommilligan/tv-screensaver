@@ -2,6 +2,8 @@
 
 Turn a TV into nice daily screensaver with a Raspberry Pi.
 
+Show the NASA [Astronomy Photo of the Day](https://apod.nasa.gov/apod/astropix.html), rendered by the beautiful [apodviewer](https://apod.nasa.gov/apod/astropix.html) by [@s7uck](https://github.com/s7uck/apod-viewer).
+
 ## Requirements
 
 The Raspberry Pi must be connected to the display **directly by HDMI**. The device must support HDMI-CEC, and cannot be connected by e.g. a USB adapter.
